@@ -1,207 +1,285 @@
-const apiKey = '45a510cacab6c66e47302cc14dd51619';
-const heroSection = document.getElementById('hero');
-const weatherQuote = document.getElementById('wether-quote');
-const cityInput = document.getElementById('city-input');
-const searchBtn = document.getElementById('search-btn');
-const cityName = document.getElementById('city-name');
-const LocalTime = document.getElementById('local-time');
-const weatherIcon = document.getElementById('wether-icon');
-const temperature = document.getElementById('temperature');
-const weatherDescription = document.getElementById('wether-description');
+document.addEventListener('DOMContentLoaded', () => {
+  const apiKey = '45a510cacab6c66e47302cc14dd51619';
+  const heroSection = document.getElementById('hero');
+  const weatherQuote = document.getElementById('weather-quote');
+  const cityInput = document.getElementById('city-input');
+  const searchBtn = document.getElementById('search-btn');
+  const cityName = document.getElementById('city-name');
+  const localTime = document.getElementById('local-time');
+  const weatherIcon = document.getElementById('weather-icon');
+  const weatherIconContainer = document.getElementById('weather-icon-container');
+  const temperature = document.getElementById('temperature');
+  const weatherDescription = document.getElementById('weather-description');
+  const humidityElement = document.getElementById('humidity');
+  const windSpeedElement = document.getElementById('wind-speed');
+  const weatherInfo = document.getElementById('weather-info');
+  const forecastElement = document.getElementById('forecast');
 
-// Wether Specific bg-Image & Quotes
+  let currentSlideInterval = null;
+  let timeUpdateInterval = null;
 
-const WeatherStyles = {
-    'clear': {
-        image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1600&h=900&auto=format&fit=crop',
-        quote: '"Sunshine is the best medicine."'
+  const weatherStyles = {
+    'sunny': {
+      quote: '"Sunshine is the best medicine."',
+      bgColor: 'bg-gradient-to-br from-yellow-200 to-orange-300',
+      animation: 'sunny-glow'
     },
     'clouds': {
-        image: 'https://images.unsplash.com/photo-1566010503302-2564ae0d47b6?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-        quotes: '"Clouds come floating into my life, no longer to carry rain or usher storm, but to add color to my sunset sky."'
+      quote: '"Clouds come floating into my life, no longer to carry rain or usher storm, but to add color to my sunset sky."',
+      bgColor: 'bg-gradient-to-br from-gray-200 to-gray-400',
+      animation: 'cloud-drift'
     },
     'rain': {
-        image: 'https://images.unsplash.com/photo-1697317432299-56cfba6e98f6?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-        quote: '"Life isn’t about waiting for the storm to pass, it’s about learning to dance in the rain."'
+      quote: '"Life isn\'t about waiting for the storm to pass, it\'s about learning to dance in the rain."',
+      bgColor: 'bg-gradient-to-br from-blue-200 to-blue-500',
+      animation: 'rain-effect'
     },
-    'snow': {
-        image: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?q=80&w=1600&h=900&auto=format&fit=crop',
-        quote: '"A snowflake is one of nature’s most fragile things, but look what happens when they stick together."'
+    'stormy': {
+      quote: '"Thunderstorms are like the tantrums of nature - loud, dramatic, but ultimately cleansing."',
+      bgColor: 'bg-gradient-to-br from-gray-700 to-gray-900',
+      animation: 'lightning-flash'
+    },
+    'snowy': {
+      quote: '"A snowflake is one of nature\'s most fragile things, but look what happens when they stick together."',
+      bgColor: 'bg-gradient-to-br from-blue-100 to-blue-300',
+      animation: 'snowfall'
     },
     'mist': {
-        image: 'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?q=80&w=1600&h=900&auto=format&fit=crop',
-        quote: '"In the mist, the world becomes a dream."'
+      quote: '"In the mist, the world becomes a dream."',
+      bgColor: 'bg-gradient-to-br from-gray-300 to-gray-500',
+      animation: 'mist-fade'
     },
     'default': {
-        image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=1600&h=900&auto=format&fit=crop',
-        quote: '"Embrace the weather, for it paints the sky with stories."'
+      quote: '"Embrace the weather, for it paints the sky with stories."',
+      bgColor: 'bg-gradient-to-br from-blue-200 to-blue-400',
+      animation: ''
     }
-}
+  };
 
-// Function to Fetch Wether Data
-async function FetchWeatherData(city) {
+  const Slides = {
+    'sunny': [
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.1.0&auto=format&fit=crop&w=1600&q=80',
+      'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?ixlib=rb-4.1.0&auto=format&fit=crop&w=1600&q=80'
+    ],
+    'clouds': [
+      'https://images.unsplash.com/photo-1566010503302-2564ae0d47b6?ixlib=rb-4.1.0&auto=format&fit=crop&w=1600&q=80',
+      'https://images.unsplash.com/photo-1670258421086-338921eda8a2?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0'
+    ],
+    'rain': [
+      'https://images.unsplash.com/photo-1697317432299-56cfba6e98f6?ixlib=rb-4.1.0&auto=format&fit=crop&w=1600&q=80',
+      'https://media.istockphoto.com/id/498063665/photo/rainy-landscape.jpg?s=612x612&w=0&k=20&c=2KhHJguvlQvd83c-CJeOiuEKI323gbtSIf1n2sNdXJc='
+    ],
+    'stormy': [
+      'https://images.unsplash.com/photo-1492011221367-f47e3ccd77a0?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0',
+      'https://images.unsplash.com/photo-1527482797697-8795b05a13fe?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0'
+    ],
+    'snowy': [
+      'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?ixlib=rb-4.1.0&auto=format&fit=crop&w=1600&q=80',
+      'https://images.stockcake.com/public/3/1/2/31234741-3165-4925-b068-a0788f4def63_large/snowy-city-street-stockcake.jpg'
+    ],
+    'mist': [
+      'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?ixlib=rb-4.1.0&auto=format&fit=crop&w=1600&q=80',
+      'https://images.stockcake.com/public/0/3/b/03b30504-8aa9-4bac-bc21-d4d9a2c66324_large/foggy-city-skyline-stockcake.jpg'
+    ],
+    'default': [
+      'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?ixlib=rb-4.1.0&auto=format&fit=crop&w=1600&q=80',
+      'https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.1.0&auto=format&fit=crop&w=1600&q=80'
+    ]
+  };
+
+  function startBackgroundSlideshow(weatherType) {
+    if (currentSlideInterval) {
+      clearInterval(currentSlideInterval);
+    }
+
+    // Get images for this weather type - fall back to default if none found
+    let images = Slides[weatherType] || Slides['default'];
+    
+    // Final fallback if even default is empty
+    if (!images || images.length === 0) {
+      console.error('No images available');
+      return;
+    }
+
+    let currentIndex = 0;
+    
+    const setBackground = () => {
+      const img = new Image();
+      img.onload = () => {
+        heroSection.style.backgroundImage = `url('${images[currentIndex]}')`;
+      };
+      img.onerror = () => {
+        console.error('Failed to load image:', images[currentIndex]);
+        // Try next image in sequence
+        currentIndex = (currentIndex + 1) % images.length;
+        setBackground();
+      };
+      img.src = images[currentIndex];
+    };
+
+    // Set initial background
+    setBackground();
+
+    // Cycle through images
+    currentSlideInterval = setInterval(() => {
+      currentIndex = (currentIndex + 1) % images.length;
+      setBackground();
+    }, 5000);
+  }
+
+  async function fetchWeatherData(city) {
     try {
-        const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`);
-        //     Sends a request to the OpenWeather API.
-
-        // Asks for the current weather of the given city.
-
-        // await pauses the function until we get a response from the API.
-
-        // ${city} and ${apiKey} insert values into the URL.
-
-        // units=metric gives temperature in °C.
-        if (!response.ok) throw new Error('City is not found');
-        //     The response is an HTTP response object returned by the browser's fetch() function. It contains information about the response, like:
-
-        // response.ok → whether the request was successful (status code 200–299)
-
-        // response.status → the HTTP status code (e.g., 200, 404)
-
-        // response.json() → a method to get the actual data in JSON format
-        // response.ok is a boolean value (true or false).
-
-        // What does throw mean?
-        // throw is used in JavaScript to intentionally cause an error.
-
-        // It stops the normal flow of the program and jumps to the nearest catch block if one exists.
-        //  What is new Error('City not found')?
-        // Error is a built-in JavaScript object used to create error messages.
-
-        // new Error('City not found') creates a new error with that message.
-        const data = await response.json();
-        // This converts the response from JSON format (text) into a JavaScript object we can use.
-        displayWeather(data);
+      // Show loading state
+      weatherInfo.classList.add('hidden');
+      forecastElement.innerHTML = '';
+      cityInput.disabled = true;
+      searchBtn.disabled = true;
+      searchBtn.textContent = 'Loading...';
+      
+      const response = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`
+      );
+      if (!response.ok) throw new Error('City not found');
+      
+      const data = await response.json();
+      displayWeather(data);
+      
+      const forecastResponse = await fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric&cnt=5`
+      );
+      if (forecastResponse.ok) {
+        displayForecast(await forecastResponse.json());
+      }
+      cityInput.value = '';
     } catch (error) {
-        alert(error.message);
+      alert(error.message);
+       forecastElement.innerHTML = '';
+      weatherInfo.classList.add('hidden');
+      cityInput.focus();
+    } finally {
+      cityInput.disabled = false;
+      searchBtn.disabled = false;
+      searchBtn.textContent = 'Search';
     }
-}
+  }
 
-//  Function to Display Wether Data
-function displayWeather(data) {
-    // This line picks out specific values from the data object
-    const { name, main, weather, timezone } = data;
-    //    It makes your code cleaner. Instead of writing:
-
-
-    // const name = data.name;
-    // const main = data.main;
-    // const weather = data.weather;
-    // const timezone = data.timezone;
-    // You can just write all in one line:
-
-
-    // const { name, main, weather, timezone } = data;
-
+  function displayWeather(data) {
+    // Clear any existing time interval
+    if (timeUpdateInterval) {
+      clearInterval(timeUpdateInterval);
+    }
+    const { name, main, weather, wind, timezone } = data;
     const weatherCondition = weather[0].main.toLowerCase();
-    //  What does weather[0].main mean?
-    // weather[0] means: the first object inside the array.
-
-    // weather[0].main means: get the "main" value of that object.
-
-    // In this example:
-
-    // weather[0].main === "Rain"
+    
+    let mappedCondition = 'default';
+    if (weatherCondition.includes('clear')) mappedCondition = 'sunny';
+    else if (weatherCondition.includes('cloud')) mappedCondition = 'clouds';
+    else if (weatherCondition.includes('rain') || weatherCondition.includes('drizzle')) mappedCondition = 'rain';
+    else if (weatherCondition.includes('thunder') || weatherCondition.includes('storm')) mappedCondition = 'stormy';
+    else if (weatherCondition.includes('snow')) mappedCondition = 'snowy';
+    else if (weatherCondition.includes('mist') || weatherCondition.includes('fog') || weatherCondition.includes('haze')) mappedCondition = 'mist';
 
     cityName.textContent = name;
-    temperature.textContent = `${main.temp}°C`;
-    // | Used In           | What `main` Refers To                     | Type   | Purpose                           |
-    // | ----------------- | ----------------------------------------- | ------ | --------------------------------- |
-    // | `main.temp`       | The **main object** (temperature info)    | Object | Holds temp, humidity, etc.        |
-    // | `weather[0].main` | The **main property** inside `weather[0]` | String | Weather type like "Rain", "Clear" |
-
+    temperature.textContent = `${Math.round(main.temp)}°C`;
     weatherDescription.textContent = weather[0].description;
-    const iconUrl = `https://openweathermap.org/img/wn/${weather[0].icon}@2x.png`
-    weatherIcon.src = iconUrl;
-    //  What does onerror do?
-    // onerror is a special event handler used with HTML elements (like <img>) in JavaScript.
-    // It runs automatically when an error occurs — for example, when the image fails to load due to a broken link or no internet.
+    humidityElement.textContent = `${main.humidity}%`;
+    windSpeedElement.textContent = `${Math.round(wind.speed * 3.6)} km/h`;
+
+    weatherIcon.src = `https://openweathermap.org/img/wn/${weather[0].icon}@4x.png`;
     weatherIcon.onerror = () => {
-        weatherIcon.src = 'https://openweathermap.org/img/wn/10d@2x.png';
-        console.log(`Failed to load icon : ${iconUrl}`);
+      weatherIcon.src = 'https://openweathermap.org/img/wn/10d@4x.png';
+    };
+
+    weatherInfo.classList.remove('hidden');
+    const style = weatherStyles[mappedCondition] || weatherStyles.default;
+    weatherQuote.textContent = style.quote;
+
+    // Reset animation classes and apply new one
+    weatherIconContainer.className = 'p-4 rounded-full bg-white/30 backdrop-blur-md shadow-md w-32 h-32 flex items-center justify-center';
+    if (style.animation) {
+      weatherIconContainer.classList.add(style.animation);
     }
 
-    // Here:
-    // If the icon URL fails (maybe invalid or the server is down), we set a fallback image (10d.png)
-
-    // We log the failed URL to help with debugging
-    weatherIcon.classList.remove('hidden');
-    // Removes the hidden class from the icon to make it visible (in case it was hidden initially).
-    // Example: Ensures the icon (e.g., sun) appears.
-
-    // this how data came in from fetch api , 
-    // {
-    //   "name": "Mumbai",
-    //   "main": {
-    //     "temp": 31.52,
-    //     "feels_like": 38.45
-    //   },
-    //  "weather": [
-    //   {
-    //     "main": "Clouds",
-    //     "description": "scattered clouds",
-    //     "icon": "03d"
-    //   }
-    // ],
-    //   "timezone": 19800
-    // }
-
-    // Updates Bg image & quotes based on wether.
-
-    const Style = WeatherStyles[weatherCondition] || WeatherStyles['default'];
-    // wetherCondition is  on line 96;
-    heroSection.style.backgroundImage = `url('${Style.image}')`;
-    weatherQuote.textContent = Style.quote;
-    // Update Local Time
+    startBackgroundSlideshow(mappedCondition);
     updateLocalTime(timezone);
-}
+  }
 
-// Function to update local time based on timezone offset
-function updateLocalTime(timezoneoffset) {
-    const update = () => {
-        const now = new Date(); //Gets the current time (your system time).
-        const UTCtime = now.getTime() + (now.getTimezoneOffset()) * 60000; // now.getTime() gives time in milliseconds.
-        // getTimezoneOffset() gives the difference in minutes between UTC and your time.
-        // Multiply by 60000 to convert minutes to milliseconds
-        const localTime = new Date(UTCtime + (timezoneoffset * 1000));
-        LocalTime.textContent = `Local Time : ${localTime.toLocaleString([], { hour: '2-digit', minute: '2-digit', hour12: true })}`;
-        // This method formats the time into a readable string, based on options you give.
+  function displayForecast(data) {
+    forecastElement.innerHTML = '';
+    const dailyForecasts = [];
+    const dates = new Set();
 
-        // You can customize format like hour, minute, AM/PM, etc.
+    data.list.forEach(item => {
+      const date = new Date(item.dt * 1000).toLocaleDateString();
+      if (!dates.has(date)) {
+        dates.add(date);
+        dailyForecasts.push(item);
+        if (dailyForecasts.length >= 4) return;
+      }
+    });
 
-        // 🔧 Inside toLocaleTimeString([], { ... }):
-        // 8. [] (empty array)
-        // This is for locales, like "en-IN" or "fr-FR".
+    dailyForecasts.forEach(item => {
+      const date = new Date(item.dt * 1000);
+      const day = date.toLocaleDateString('en-US', { weekday: 'short' });
+      const iconUrl = `https://openweathermap.org/img/wn/${item.weather[0].icon}@2x.png`;
 
-        // [] means use default locale of the browser.
-        // if you leave it as [], it will automatically match the user's system or browser settings — which is best for international use.
+      const forecastCard = document.createElement('div');
+      forecastCard.className = 'bg-white/10 p-3 rounded-lg backdrop-blur-sm border border-white/20 text-center';
+      forecastCard.innerHTML = `
+        <p class="font-semibold text-white">${day}</p>
+        <img src="${iconUrl}" alt="${item.weather[0].description}" class="w-12 h-12 mx-auto my-1">
+        <div class="flex justify-center gap-2">
+          <span class="font-bold text-white">${Math.round(item.main.temp_max)}°</span>
+          <span class="opacity-70 text-white">${Math.round(item.main.temp_min)}°</span>
+        </div>
+        <p class="text-xs capitalize text-white/80 mt-1">${item.weather[0].description}</p>
+      `;
+      forecastElement.appendChild(forecastCard);
+    });
+  }
 
-        // 9. { hour: '2-digit', minute: '2-digit', hour12: true }
-        // These are formatting options:
-
-        // hour: '2-digit' → Always show 2 digits for hour (e.g., 03 instead of 3)
-
-        // minute: '2-digit' → Same for minutes
-
-        // hour12: true → Use 12-hour clock (with AM/PM). If false, shows 24-hour time.
+  function updateLocalTime(timezoneOffset) {
+    // Clear any existing interval first
+    if (timeUpdateInterval) {
+      clearInterval(timeUpdateInterval);
     }
-    update();
-    setInterval(update, 1000);
-}
-//  Event Listner For Search Button
 
-searchBtn.addEventListener('click', () => {
+    const update = () => {
+      const now = new Date();
+      const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const localTimeObj = new Date(utcTime + (timezoneOffset * 1000));
+
+      localTime.textContent = localTimeObj.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }) + ' • ' + localTimeObj.toLocaleDateString([], {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric'
+      });
+    };
+
+    update();
+    timeUpdateInterval = setInterval(update, 1000);
+  }
+
+  searchBtn.addEventListener('click', () => {
     const city = cityInput.value.trim();
     if (city) {
-        FetchWeatherData(city);
+      fetchWeatherData(city);
     } else {
-        alert('Enter a valid City Name');
+      alert('Please enter a city name');
+      cityInput.focus();
     }
-    cityInput.value = '';
-});
-//  Event listner for Enter Key
-cityInput.addEventListener('keydown', (e) => {
+  });
+
+  cityInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-        searchBtn.click();
+      searchBtn.click();
     }
-})
+  });
+
+  // Initialize with default background
+  startBackgroundSlideshow('default');
+});
